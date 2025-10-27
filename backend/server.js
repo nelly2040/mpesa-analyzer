@@ -7,17 +7,15 @@ const mongoose = require('mongoose');
 const userRoutes = require('./routes/userRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 
-// Load environment variables
+// This line loads the variables from your .env file
 dotenv.config();
 
-// Connect to Database
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-}).then(() => console.log('MongoDB connected successfully'))
+// Connect to Database using the variable from .env
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB connected successfully'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-
+  
 const app = express();
 
 // Middlewares
