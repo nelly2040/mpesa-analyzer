@@ -3,57 +3,40 @@ const Transaction = require('../models/transactionModel');
 // @desc    Add a new transaction
 // @route   POST /api/transactions
 const addTransaction = async (req, res) => {
-    const { type, category, amount, date, description } = req.body;
-
-    if (!type || !amount || !date || !description) {
-        return res.status(400).json({ message: 'Please provide all required fields' });
-    }
-
-    const transaction = new Transaction({
-        user: req.user._id, // from protect middleware
-        type,
-        category,
-        amount,
-        date,
-        description,
-    });
-
-    const createdTransaction = await transaction.save();
-    res.status(201).json(createdTransaction);
-};
-
-// @desc    Get all transactions for a user
-// @route   GET /api/transactions
-const getTransactions = async (req, res) => {
-    const transactions = await Transaction.find({ user: req.user._id }).sort({ date: -1 });
-    res.json(transactions);
-};
-
-// @desc    Get a summary of transactions for the dashboard
-// @route   GET /api/transactions/summary
-const getDashboardSummary = async (req, res) => {
     try {
-        const transactions = await Transaction.find({ user: req.user._id });
+        const { type, category, amount, date, description } = req.body;
 
-        const totalIncome = transactions
-            .filter(t => t.type === 'income')
-            .reduce((acc, t) => acc + t.amount, 0);
+        if (!type || !category || !amount || !date || !description) {
+            return res.status(400).json({ message: 'Please fill in all fields' });
+        }
 
-        const totalExpenses = transactions
-            .filter(t => t.type === 'expense')
-            .reduce((acc, t) => acc + t.amount, 0);
-        
-        const netCashflow = totalIncome - totalExpenses;
-
-        res.json({
-            totalIncome,
-            totalExpenses,
-            netCashflow,
-            transactionsCount: transactions.length,
+        const transaction = new Transaction({
+            user: req.user._id, // This comes from our 'protect' middleware
+            type,
+            category,
+            amount,
+            date,
+            description,
         });
+
+        const createdTransaction = await transaction.save();
+        res.status(201).json(createdTransaction);
+
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-module.exports = { addTransaction, getTransactions, getDashboardSummary };
+// @desc    Get all transactions for a user
+// @route   GET /api/transactions
+const getTransactions = async (req, res) => {
+    try {
+        const transactions = await Transaction.find({ user: req.user._id }).sort({ date: -1 });
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+
+module.exports = { addTransaction, getTransactions };
