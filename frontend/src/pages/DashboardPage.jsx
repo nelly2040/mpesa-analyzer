@@ -1,26 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import TransactionModal from '../components/TransactionModal';
+import TransactionList from '../components/TransactionList';
 import transactionService from '../services/transactionService';
 
 const DashboardPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // This function will be called when the form is submitted
+    const fetchTransactions = async () => {
+        try {
+            setLoading(true);
+            const data = await transactionService.getTransactions();
+            setTransactions(data);
+        } catch (error) {
+            console.error('Failed to fetch transactions:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch transactions when the component mounts
+    useEffect(() => {
+        fetchTransactions();
+    }, []);
+
     const handleAddTransaction = async (transactionData) => {
         try {
             const newTransaction = await transactionService.addTransaction(transactionData);
-            console.log('Transaction added:', newTransaction);
-            // We will add logic here to refresh the transaction list
-            setIsModalOpen(false); // Close the modal on success
+            setTransactions([newTransaction, ...transactions]); // Add new transaction to the top of the list
+            setIsModalOpen(false);
         } catch (error) {
             console.error('Failed to add transaction:', error);
-            // You could show an error message to the user here
         }
     };
 
     return (
-        <div>
+        <div className="bg-gray-100 min-h-screen">
             <Navbar />
             <TransactionModal 
                 isOpen={isModalOpen} 
@@ -41,11 +58,8 @@ const DashboardPage = () => {
             </header>
             <main>
                 <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                    <div className="px-4 py-6 sm:px-0">
-                        <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 p-4">
-                            Welcome! Your transaction list and charts will appear here.
-                        </div>
-                    </div>
+                    {/* Replace the dashed box with our TransactionList */}
+                    {loading ? <p>Loading transactions...</p> : <TransactionList transactions={transactions} />}
                 </div>
             </main>
         </div>
