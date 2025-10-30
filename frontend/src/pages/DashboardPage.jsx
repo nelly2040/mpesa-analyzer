@@ -2,22 +2,23 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import TransactionModal from '../components/TransactionModal';
 import TransactionList from '../components/TransactionList';
-import DashboardSummary from '../components/DashboardSummary'; // Import the new component
+import DashboardSummary from '../components/DashboardSummary';
+import ExpenseChart from '../components/ExpenseChart'; // Import the chart
 import transactionService from '../services/transactionService';
 
 const DashboardPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactions, setTransactions] = useState([]);
-    const [summary, setSummary] = useState(null); // Add state for summary data
+    const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         try {
             setLoading(true);
             const transData = await transactionService.getTransactions();
-            const summaryData = await transactionService.getSummary(); // Fetch summary
+            const summaryData = await transactionService.getSummary();
             setTransactions(transData);
-            setSummary(summaryData); // Set summary state
+            setSummary(summaryData);
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
         } finally {
@@ -32,7 +33,7 @@ const DashboardPage = () => {
     const handleAddTransaction = async (transactionData) => {
         try {
             await transactionService.addTransaction(transactionData);
-            fetchData(); // Refetch all data to update everything
+            fetchData();
             setIsModalOpen(false);
         } catch (error) {
             console.error('Failed to add transaction:', error);
@@ -49,14 +50,30 @@ const DashboardPage = () => {
             />
 
             <header className="bg-white shadow">
-                {/* ... header content ... */}
+                <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700"
+                    >
+                        Add Transaction
+                    </button>
+                </div>
             </header>
             <main>
                 <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                    {/* Add the Summary component here */}
-                    {loading ? <p>Loading summary...</p> : <DashboardSummary summary={summary} />}
-
-                    {loading ? <p>Loading transactions...</p> : <TransactionList transactions={transactions} />}
+                    {loading ? (
+                        <p>Loading dashboard...</p>
+                    ) : (
+                        <>
+                            <DashboardSummary summary={summary} />
+                            {/* Grid layout for Chart and List */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                                <ExpenseChart data={summary.expenseByCategory} />
+                                <TransactionList transactions={transactions} />
+                            </div>
+                        </>
+                    )}
                 </div>
             </main>
         </div>
