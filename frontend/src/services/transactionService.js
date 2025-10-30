@@ -10,6 +10,11 @@ const getTransactions = async () => {
     return response.data;
 };
 
+const getSummary = async () => {
+    const response = await API.get('/transactions/summary');
+    return response.data;
+};
+
 const transactionService = {
     addTransaction,
     getTransactions,
