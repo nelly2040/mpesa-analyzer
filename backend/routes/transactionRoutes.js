@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { addTransaction, getTransactions } = require('../controllers/transactionController');
+// Make sure you import getTransactionSummary here
+const { addTransaction, getTransactions, getTransactionSummary } = require('../controllers/transactionController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Both routes are protected. You must be logged in.
 router.route('/')
     .post(protect, addTransaction)
     .get(protect, getTransactions);
+
+// Add this new route for the summary
+router.get('/summary', protect, getTransactionSummary);
 
 module.exports = router;
