@@ -11,7 +11,7 @@ const addTransaction = async (req, res) => {
         }
 
         const transaction = new Transaction({
-            user: req.user._id, // This comes from our 'protect' middleware
+            user: req.user._id,
             type,
             category,
             amount,
@@ -29,6 +29,17 @@ const addTransaction = async (req, res) => {
 
 // @desc    Get all transactions for a user
 // @route   GET /api/transactions
+const getTransactions = async (req, res) => {
+    try {
+        const transactions = await Transaction.find({ user: req.user._id }).sort({ date: -1 });
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get a summary of all transactions for the user
+// @route   GET /api/transactions/summary
 const getTransactionSummary = async (req, res) => {
     try {
         const transactions = await Transaction.find({ user: req.user._id });
@@ -43,7 +54,6 @@ const getTransactionSummary = async (req, res) => {
         
         const netProfitLoss = totalIncome - totalExpenses;
 
-        // Group expenses by category for the chart
         const expenseByCategory = transactions
             .filter(t => t.type === 'expense')
             .reduce((acc, transaction) => {
@@ -67,9 +77,9 @@ const getTransactionSummary = async (req, res) => {
     }
 };
 
-
+// This is the corrected export block
 module.exports = { 
     addTransaction, 
     getTransactions, 
-    getTransactionSummary // Add this
+    getTransactionSummary 
 };

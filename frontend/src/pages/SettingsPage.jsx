@@ -1,27 +1,31 @@
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext'; // We'll update this import path in the next step
 import userService from '../services/userService';
 
 const SettingsPage = () => {
-    const { user, setUser } = useAuth(); // We need setUser to update the context
+    const { user, setUser } = useAuth();
     
-    // State for the profile form
-    const [name, setName] = useState(user.name);
+    // STEP 1: All hooks are now at the top level, unconditionally.
+    const [name, setName] = useState(user ? user.name : '');
     const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
-
-    // State for the password form
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
+
+    // STEP 2: The conditional return happens AFTER all hooks are called.
+    if (!user) {
+        return <div>Loading user profile...</div>;
+    }
 
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
         try {
             const updatedUser = await userService.updateProfile({ name });
-            setUser(updatedUser); // Update user in the global context
+            setUser(updatedUser);
             setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
-        } catch (error) {
+        } catch (err) { // Keep err to see potential logs
+            console.error(err);
             setProfileMessage({ type: 'error', text: 'Failed to update profile.' });
         }
     };
@@ -31,10 +35,10 @@ const SettingsPage = () => {
         try {
             await userService.changePassword({ currentPassword, newPassword });
             setPasswordMessage({ type: 'success', text: 'Password changed successfully!' });
-            // Clear fields after success
             setCurrentPassword('');
             setNewPassword('');
-        } catch (error) {
+        } catch (err) { // Keep err to see potential logs
+            console.error(err);
             setPasswordMessage({ type: 'error', text: 'Failed to change password. Check your current password.' });
         }
     };
