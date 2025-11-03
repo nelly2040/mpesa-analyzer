@@ -15,9 +15,11 @@ const getSummary = async () => {
     return response.data;
 };
 
+// Ensure all three functions are listed here
 const transactionService = {
     addTransaction,
     getTransactions,
+    getSummary,
 };
 
 export default transactionService;

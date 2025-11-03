@@ -3,24 +3,25 @@ import Navbar from '../components/Navbar';
 import TransactionModal from '../components/TransactionModal';
 import TransactionList from '../components/TransactionList';
 import DashboardSummary from '../components/DashboardSummary';
-import ExpenseChart from '../components/ExpenseChart'; // Import the chart
+import ExpenseChart from '../components/ExpenseChart';
 import transactionService from '../services/transactionService';
 
 const DashboardPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactions, setTransactions] = useState([]);
-    const [summary, setSummary] = useState(null);
+    const [summary, setSummary] = useState(null); // Stays null initially
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         try {
-            setLoading(true);
+            // No need to set loading here, it's already true
             const transData = await transactionService.getTransactions();
             const summaryData = await transactionService.getSummary();
             setTransactions(transData);
             setSummary(summaryData);
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
+            // We could set an error state here to show a message
         } finally {
             setLoading(false);
         }
@@ -33,7 +34,8 @@ const DashboardPage = () => {
     const handleAddTransaction = async (transactionData) => {
         try {
             await transactionService.addTransaction(transactionData);
-            fetchData();
+            // After adding, just refetch all data to ensure consistency
+            fetchData(); 
             setIsModalOpen(false);
         } catch (error) {
             console.error('Failed to add transaction:', error);
@@ -62,17 +64,20 @@ const DashboardPage = () => {
             </header>
             <main>
                 <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                    {/* THIS IS THE CORRECTED LOGIC */}
                     {loading ? (
-                        <p>Loading dashboard...</p>
+                        <p className="text-center text-gray-500">Loading dashboard...</p>
                     ) : (
-                        <>
-                            <DashboardSummary summary={summary} />
-                            {/* Grid layout for Chart and List */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                                <ExpenseChart data={summary.expenseByCategory} />
-                                <TransactionList transactions={transactions} />
-                            </div>
-                        </>
+                        // We only render the components if the summary data exists
+                        summary && (
+                            <>
+                                <DashboardSummary summary={summary} />
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                                    <ExpenseChart data={summary.expenseByCategory} />
+                                    <TransactionList transactions={transactions} />
+                                </div>
+                            </>
+                        )
                     )}
                 </div>
             </main>

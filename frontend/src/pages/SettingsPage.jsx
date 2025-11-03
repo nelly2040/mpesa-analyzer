@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
-import { useAuth } from '../context/AuthContext'; // We'll update this import path in the next step
+import { useAuth } from '../hooks/useAuth'; 
 import userService from '../services/userService';
 
 const SettingsPage = () => {
