@@ -1,20 +1,21 @@
 const express = require('express');
 const router = express.Router();
 
-const { addTransaction, getTransactions, getTransactionSummary } = require('../controllers/transactionController');
 const { protect } = require('../middleware/authMiddleware');
-const { 
-    addTransaction, 
-    getTransactions, 
+
+// ONLY ONE import statement for transactionController
+const {
+    addTransaction,
+    getTransactions,
     getTransactionSummary,
-    parseSmsAndCreateTransactions // Import new function
+    parseSmsAndCreateTransactions // Include all functions you need here
 } = require('../controllers/transactionController');
 
 router.route('/')
     .post(protect, addTransaction)
     .get(protect, getTransactions);
 
-// Add this new route for the summary
 router.get('/summary', protect, getTransactionSummary);
 router.post('/parse-sms', protect, parseSmsAndCreateTransactions);
+
 module.exports = router;
