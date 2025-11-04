@@ -15,11 +15,18 @@ const getSummary = async () => {
     return response.data;
 };
 
+const parseSms = async (text) => {
+    const response = await API.post('/transactions/parse-sms', { text });
+    return response.data;
+};
+
 // Ensure all three functions are listed here
 const transactionService = {
     addTransaction,
     getTransactions,
     getSummary,
+    parseSms,
 };
+
 
 export default transactionService;
