@@ -1,21 +1,28 @@
 import React from 'react';
 
-// A helper function to format the date nicely
-const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-};
+const TransactionList = ({ transactions, onEdit, onDelete }) => {
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-KE', {
+            style: 'currency',
+            currency: 'KES'
+        }).format(amount);
+    };
 
-// A helper function to format currency
-const formatCurrency = (amount) => {
-    return `Ksh ${amount.toLocaleString('en-US')}`;
-};
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-KE', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
 
-const TransactionList = ({ transactions }) => {
     if (!transactions || transactions.length === 0) {
         return (
-            <div className="text-center text-gray-500 py-8">
-                No transactions yet. Click "Add Transaction" to get started!
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <h3 className="text-lg font-semibold text-gray-800 p-4 border-b">Recent Transactions</h3>
+                <div className="p-8 text-center text-gray-500">
+                    <p>No transactions yet. Add your first transaction to get started!</p>
+                </div>
             </div>
         );
     }
@@ -23,19 +30,50 @@ const TransactionList = ({ transactions }) => {
     return (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <h3 className="text-lg font-semibold text-gray-800 p-4 border-b">Recent Transactions</h3>
-            <ul>
-                {transactions.map((t) => (
-                    <li key={t._id} className="flex items-center justify-between p-4 border-b last:border-b-0">
-                        <div className="flex items-center">
-                            <div className={`w-3 h-3 rounded-full mr-4 ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                            <div>
-                                <p className="font-semibold text-gray-900">{t.description}</p>
-                                <p className="text-sm text-gray-500">{formatDate(t.date)} • {t.category}</p>
+            <ul className="divide-y divide-gray-200">
+                {transactions.map((transaction) => (
+                    <li key={transaction._id} className="p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                        transaction.type === 'income' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {transaction.type}
+                                    </span>
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {transaction.category}
+                                    </span>
+                                </div>
+                                <p className="font-medium text-gray-900">{transaction.description}</p>
+                                <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                                <span className={`text-lg font-semibold ${
+                                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                                </span>
+                                
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => onEdit(transaction)}
+                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => onDelete(transaction._id)}
+                                        className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <span className={`font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                            {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                        </span>
                     </li>
                 ))}
             </ul>
