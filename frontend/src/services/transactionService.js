@@ -1,6 +1,6 @@
 // frontend/src/services/transactionService.js
 
-import api from './api'; // Assuming 'api' is your Axios instance
+import API from './api'; // Assuming 'api' is your Axios instance
 
 const TRANSACTION_API_URL = '/api/transactions'; // Base URL for transaction endpoints
 
