@@ -50,7 +50,7 @@ const transactionService = {
     }
 },
 
-deleteTransaction: async (id) => {
+    deleteTransaction: async (id) => {
     try {
         console.log('Deleting transaction:', id);
         const response = await API.delete(`${TRANSACTION_API_URL}/${id}`);
