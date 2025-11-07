@@ -8,7 +8,9 @@ const {
     addTransaction,
     getTransactions,
     getTransactionSummary,
-    parseSmsAndCreateTransactions // Include all functions you need here
+    updateTransaction,    // Add this import
+    deleteTransaction,    // Add this import
+    parseSmsAndCreateTransactions
 } = require('../controllers/transactionController');
 
 router.route('/')
@@ -17,5 +19,10 @@ router.route('/')
 
 router.get('/summary', protect, getTransactionSummary);
 router.post('/parse-sms', protect, parseSmsAndCreateTransactions);
+
+// Add these new routes for update and delete
+router.route('/:id')
+    .put(protect, updateTransaction)
+    .delete(protect, deleteTransaction);
 
 module.exports = router;

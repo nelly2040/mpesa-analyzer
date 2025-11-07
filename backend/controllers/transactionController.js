@@ -77,6 +77,62 @@ const getTransactionSummary = async (req, res) => {
     }
 };
 
+// @desc    Update a transaction
+// @route   PUT /api/transactions/:id
+const updateTransaction = async (req, res) => {
+    try {
+        const { type, category, amount, date, description } = req.body;
+        const transaction = await Transaction.findById(req.params.id);
+
+        if (!transaction) {
+            return res.status(404).json({ message: 'Transaction not found' });
+        }
+
+        // Check if transaction belongs to the logged-in user
+        if (transaction.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized to update this transaction' });
+        }
+
+        // Update fields
+        transaction.type = type || transaction.type;
+        transaction.category = category || transaction.category;
+        transaction.amount = amount || transaction.amount;
+        transaction.date = date || transaction.date;
+        transaction.description = description || transaction.description;
+
+        const updatedTransaction = await transaction.save();
+        res.json(updatedTransaction);
+
+    } catch (error) {
+        console.error('Update transaction error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Delete a transaction
+// @route   DELETE /api/transactions/:id
+const deleteTransaction = async (req, res) => {
+    try {
+        const transaction = await Transaction.findById(req.params.id);
+
+        if (!transaction) {
+            return res.status(404).json({ message: 'Transaction not found' });
+        }
+
+        // Check if transaction belongs to the logged-in user
+        if (transaction.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized to delete this transaction' });
+        }
+
+        await Transaction.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Transaction removed successfully' });
+
+    } catch (error) {
+        console.error('Delete transaction error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 const parseSmsAndCreateTransactions = async (req, res) => {
     const { text } = req.body;
     const user = req.user._id;
@@ -133,5 +189,7 @@ module.exports = {
     addTransaction, 
     getTransactions, 
     getTransactionSummary,
+    updateTransaction,  // Add this
+    deleteTransaction,  // Add this
     parseSmsAndCreateTransactions
 };
