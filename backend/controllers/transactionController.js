@@ -27,22 +27,73 @@ const addTransaction = async (req, res) => {
     }
 };
 
-// @desc    Get all transactions for a user
+// @desc    Get all transactions for a user with optional filtering
 // @route   GET /api/transactions
 const getTransactions = async (req, res) => {
     try {
-        const transactions = await Transaction.find({ user: req.user._id }).sort({ date: -1 });
+        const { type, category, startDate, endDate, search } = req.query;
+        
+        // Build filter object
+        let filter = { user: req.user._id };
+        
+        // Filter by type
+        if (type && type !== 'all') {
+            filter.type = type;
+        }
+        
+        // Filter by category
+        if (category && category !== 'all') {
+            filter.category = category;
+        }
+        
+        // Filter by date range
+        if (startDate || endDate) {
+            filter.date = {};
+            if (startDate) filter.date.$gte = new Date(startDate);
+            if (endDate) filter.date.$lte = new Date(endDate);
+        }
+        
+        // Search in description
+        if (search) {
+            filter.description = { $regex: search, $options: 'i' }; // case-insensitive
+        }
+
+        const transactions = await Transaction.find(filter).sort({ date: -1 });
         res.json(transactions);
     } catch (error) {
+        console.error('Get transactions error:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-// @desc    Get a summary of all transactions for the user
+// @desc    Get a summary of all transactions for the user with optional filtering
 // @route   GET /api/transactions/summary
 const getTransactionSummary = async (req, res) => {
     try {
-        const transactions = await Transaction.find({ user: req.user._id });
+        const { type, category, startDate, endDate, search } = req.query;
+        
+        // Build filter object (same as getTransactions)
+        let filter = { user: req.user._id };
+        
+        if (type && type !== 'all') {
+            filter.type = type;
+        }
+        
+        if (category && category !== 'all') {
+            filter.category = category;
+        }
+        
+        if (startDate || endDate) {
+            filter.date = {};
+            if (startDate) filter.date.$gte = new Date(startDate);
+            if (endDate) filter.date.$lte = new Date(endDate);
+        }
+        
+        if (search) {
+            filter.description = { $regex: search, $options: 'i' };
+        }
+
+        const transactions = await Transaction.find(filter);
 
         const totalIncome = transactions
             .filter(t => t.type === 'income')
@@ -70,6 +121,7 @@ const getTransactionSummary = async (req, res) => {
             totalExpenses,
             netProfitLoss,
             expenseByCategory,
+            filteredTransactionCount: transactions.length // Add count for reference
         });
     } catch (error) {
         console.error(error);
@@ -189,7 +241,7 @@ module.exports = {
     addTransaction, 
     getTransactions, 
     getTransactionSummary,
-    updateTransaction,  // Add this
-    deleteTransaction,  // Add this
+    updateTransaction,
+    deleteTransaction,
     parseSmsAndCreateTransactions
 };

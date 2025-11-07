@@ -5,6 +5,7 @@ import SmsImportModal from '../components/SmsImportModal';
 import TransactionList from '../components/TransactionList';
 import DashboardSummary from '../components/DashboardSummary';
 import ExpenseChart from '../components/ExpenseChart';
+import TransactionFilter from '../components/TransactionFilter'; // ADD THIS IMPORT
 import transactionService from '../services/transactionService';
 
 const DashboardPage = () => {
@@ -15,16 +16,22 @@ const DashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [transactionToEdit, setTransactionToEdit] = useState(null);
     const [error, setError] = useState('');
+    const [activeFilters, setActiveFilters] = useState({});
+    const [showFilters, setShowFilters] = useState(false); // ADD THIS STATE
 
-    const fetchData = async () => {
+    const fetchData = async (filters = {}) => {
         try {
             setError('');
+            setLoading(true);
+            
             const [transData, summaryData] = await Promise.all([
-                transactionService.getTransactions(),
-                transactionService.getSummary()
+                transactionService.getTransactions(filters),
+                transactionService.getSummary(filters)
             ]);
+            
             setTransactions(transData);
             setSummary(summaryData);
+            setActiveFilters(filters);
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
             setError('Failed to load dashboard data. Please try again.');
@@ -37,18 +44,25 @@ const DashboardPage = () => {
         fetchData();
     }, []);
 
+    const handleFilter = (filters) => {
+        fetchData(filters);
+        setShowFilters(false); // Hide filters after applying
+    };
+
+    const handleClearFilters = () => {
+        fetchData();
+        setShowFilters(false); // Hide filters after clearing
+    };
+
     const handleSaveTransaction = async (transactionData) => {
         try {
             setError('');
             if (transactionToEdit) {
-                // Editing existing transaction
                 await transactionService.updateTransaction(transactionToEdit._id, transactionData);
             } else {
-                // Adding new transaction
                 await transactionService.addTransaction(transactionData);
             }
-            // Refresh data and close modal
-            await fetchData();
+            await fetchData(activeFilters); // Refresh with current filters
             setIsModalOpen(false);
             setTransactionToEdit(null);
         } catch (error) {
@@ -68,7 +82,7 @@ const DashboardPage = () => {
             try {
                 setError('');
                 await transactionService.deleteTransaction(transactionId);
-                await fetchData(); // Refresh the data
+                await fetchData(activeFilters); // Refresh with current filters
             } catch (error) {
                 console.error('Failed to delete transaction:', error);
                 setError('Failed to delete transaction. Please try again.');
@@ -82,7 +96,7 @@ const DashboardPage = () => {
             const result = await transactionService.parseSms(text);
             alert(result.message);
             setIsSmsModalOpen(false);
-            await fetchData(); // Refresh all dashboard data after import
+            await fetchData(activeFilters); // Refresh with current filters
         } catch (error) {
             console.error('Failed to import SMS:', error);
             setError('Failed to import SMS transactions. Please check the format and try again.');
@@ -129,17 +143,29 @@ const DashboardPage = () => {
                 <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
                     <div className="flex gap-4">
+                        {/* Filter Button - ADD THIS */}
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="bg-purple-600 text-white font-bold py-2 px-4 rounded hover:bg-purple-700 transition-colors flex items-center gap-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                            </svg>
+                            Filters
+                        </button>
+                        
                         {/* Import SMS Button */}
                         <button
                             onClick={() => setIsSmsModalOpen(true)}
-                            className="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors"
+                            className="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition-colors"
                         >
                             Import SMS
                         </button>
+                        
                         {/* Add Transaction Button */}
                         <button
                             onClick={handleOpenAddModal}
-                            className="bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"
+                            className="bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition-colors"
                         >
                             Add Transaction
                         </button>
@@ -156,6 +182,36 @@ const DashboardPage = () => {
                         </div>
                     )}
 
+                    {/* Active Filters Indicator */}
+                    {Object.keys(activeFilters).some(key => 
+                        activeFilters[key] && activeFilters[key] !== 'all' && activeFilters[key] !== ''
+                    ) && (
+                        <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded p-3">
+                            <p className="text-sm text-yellow-800">
+                                <strong>Active Filters:</strong> 
+                                {activeFilters.type && activeFilters.type !== 'all' && ` Type: ${activeFilters.type}`}
+                                {activeFilters.category && activeFilters.category !== 'all' && ` Category: ${activeFilters.category}`}
+                                {activeFilters.startDate && ` From: ${activeFilters.startDate}`}
+                                {activeFilters.endDate && ` To: ${activeFilters.endDate}`}
+                                {activeFilters.search && ` Search: "${activeFilters.search}"`}
+                                <button 
+                                    onClick={handleClearFilters}
+                                    className="ml-2 text-yellow-700 hover:text-yellow-900 underline text-sm"
+                                >
+                                    Clear All
+                                </button>
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Transaction Filter Component - ADD THIS */}
+                    {showFilters && (
+                        <TransactionFilter 
+                            onFilter={handleFilter}
+                            onClear={handleClearFilters}
+                        />
+                    )}
+
                     {loading ? (
                         <div className="flex justify-center items-center py-12">
                             <div className="text-center">
@@ -164,12 +220,10 @@ const DashboardPage = () => {
                             </div>
                         </div>
                     ) : (
-                        // Render components only if summary data is available
                         summary ? (
                             <>
                                 <DashboardSummary summary={summary} />
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                                    {/* Ensure data for ExpenseChart is correctly formatted */}
                                     <ExpenseChart data={summary.expenseByCategory || {}} />
                                     <TransactionList 
                                         transactions={transactions} 
