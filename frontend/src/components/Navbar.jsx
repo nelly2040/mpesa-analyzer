@@ -21,8 +21,8 @@ const Navbar = () => {
                             <Link to="/" className="text-gray-700 hover:text-green-600 transition-colors">
                                 Dashboard
                             </Link>
-                            <Link to="/budget" className="text-gray-700 hover:text-green-600 transition-colors"> {/* ADD THIS */}
-                                Budget
+                            <Link to="/reports" className="text-gray-700 hover:text-green-600 transition-colors"> {/* ADD THIS */}
+                                Reports
                             </Link>
                             
                             {/* User Menu */}

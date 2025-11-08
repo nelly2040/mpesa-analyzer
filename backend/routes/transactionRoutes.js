@@ -3,14 +3,15 @@ const router = express.Router();
 
 const { protect } = require('../middleware/authMiddleware');
 
-// ONLY ONE import statement for transactionController
 const {
     addTransaction,
     getTransactions,
     getTransactionSummary,
-    updateTransaction,    // Add this import
-    deleteTransaction,    // Add this import
-    parseSmsAndCreateTransactions
+    updateTransaction,
+    deleteTransaction,
+    parseSmsAndCreateTransactions,
+    getMonthlyReport,  
+    getYearlyReport    
 } = require('../controllers/transactionController');
 
 router.route('/')
@@ -20,7 +21,10 @@ router.route('/')
 router.get('/summary', protect, getTransactionSummary);
 router.post('/parse-sms', protect, parseSmsAndCreateTransactions);
 
-// Add these new routes for update and delete
+// ADD THESE NEW ROUTES
+router.get('/reports/monthly', protect, getMonthlyReport);
+router.get('/reports/yearly', protect, getYearlyReport);
+
 router.route('/:id')
     .put(protect, updateTransaction)
     .delete(protect, deleteTransaction);

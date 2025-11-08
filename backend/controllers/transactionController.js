@@ -237,11 +237,202 @@ const parseSmsAndCreateTransactions = async (req, res) => {
     }
 };
 
+// @desc    Get monthly report
+// @route   GET /api/transactions/reports/monthly
+const getMonthlyReport = async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        
+        // Use current month/year if not provided
+        const currentDate = new Date();
+        const targetYear = parseInt(year) || currentDate.getFullYear();
+        const targetMonth = parseInt(month) || currentDate.getMonth() + 1;
+        
+        // Calculate date range for the month
+        const startDate = new Date(targetYear, targetMonth - 1, 1);
+        const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
+
+        // Get transactions for the month
+        const transactions = await Transaction.find({
+            user: req.user._id,
+            date: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        }).sort({ date: -1 });
+
+        // Calculate totals
+        const totalIncome = transactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        const totalExpenses = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        const netProfitLoss = totalIncome - totalExpenses;
+
+        // Group by category
+        const incomeByCategory = transactions
+            .filter(t => t.type === 'income')
+            .reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
+
+        const expenseByCategory = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
+
+        // Daily breakdown
+        const dailyBreakdown = transactions.reduce((acc, t) => {
+            const dateStr = t.date.toISOString().split('T')[0];
+            if (!acc[dateStr]) {
+                acc[dateStr] = { income: 0, expenses: 0, transactions: [] };
+            }
+            if (t.type === 'income') {
+                acc[dateStr].income += t.amount;
+            } else {
+                acc[dateStr].expenses += t.amount;
+            }
+            acc[dateStr].transactions.push(t);
+            return acc;
+        }, {});
+
+        res.json({
+            period: {
+                year: targetYear,
+                month: targetMonth,
+                monthName: new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })
+            },
+            summary: {
+                totalIncome,
+                totalExpenses,
+                netProfitLoss,
+                transactionCount: transactions.length
+            },
+            incomeByCategory,
+            expenseByCategory,
+            dailyBreakdown,
+            transactions
+        });
+    } catch (error) {
+        console.error('Monthly report error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get yearly report
+// @route   GET /api/transactions/reports/yearly
+const getYearlyReport = async (req, res) => {
+    try {
+        const { year } = req.query;
+        
+        // Use current year if not provided
+        const currentDate = new Date();
+        const targetYear = parseInt(year) || currentDate.getFullYear();
+        
+        // Calculate date range for the year
+        const startDate = new Date(targetYear, 0, 1);
+        const endDate = new Date(targetYear, 11, 31, 23, 59, 59);
+
+        // Get transactions for the year
+        const transactions = await Transaction.find({
+            user: req.user._id,
+            date: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        });
+
+        // Monthly breakdown
+        const monthlyBreakdown = {};
+        for (let month = 0; month < 12; month++) {
+            const monthTransactions = transactions.filter(t => 
+                t.date.getMonth() === month
+            );
+            
+            const income = monthTransactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+                
+            const expenses = monthTransactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            monthlyBreakdown[month] = {
+                income,
+                expenses,
+                net: income - expenses,
+                transactionCount: monthTransactions.length,
+                monthName: new Date(targetYear, month).toLocaleString('default', { month: 'short' })
+            };
+        }
+
+        // Yearly totals
+        const totalIncome = transactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        const totalExpenses = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        // Category breakdown for the year
+        const incomeByCategory = transactions
+            .filter(t => t.type === 'income')
+            .reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
+
+        const expenseByCategory = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
+
+        res.json({
+            period: {
+                year: targetYear
+            },
+            summary: {
+                totalIncome,
+                totalExpenses,
+                netProfitLoss: totalIncome - totalExpenses,
+                transactionCount: transactions.length,
+                averageMonthlyIncome: totalIncome / 12,
+                averageMonthlyExpenses: totalExpenses / 12
+            },
+            monthlyBreakdown,
+            incomeByCategory,
+            expenseByCategory,
+            topCategories: {
+                income: Object.entries(incomeByCategory)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5),
+                expenses: Object.entries(expenseByCategory)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5)
+            }
+        });
+    } catch (error) {
+        console.error('Yearly report error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = { 
     addTransaction, 
     getTransactions, 
     getTransactionSummary,
     updateTransaction,
     deleteTransaction,
-    parseSmsAndCreateTransactions
+    parseSmsAndCreateTransactions,
+    getMonthlyReport,  
+    getYearlyReport    
 };
