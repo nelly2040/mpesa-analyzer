@@ -118,9 +118,10 @@ const getBudgetSummary = async (req, res) => {
         const budgetSummary = budgets.map(budget => {
             const spent = spendingByCategory[budget.category] || 0;
             const remaining = budget.amount - spent;
-            const percentage = (spent / budget.amount) * 100;
+            const percentage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
 
             return {
+                _id: budget._id,
                 category: budget.category,
                 budget: budget.amount,
                 spent: spent,

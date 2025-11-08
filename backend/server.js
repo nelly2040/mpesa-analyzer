@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 // Route imports
 const userRoutes = require('./routes/userRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
-const budgetRoutes = require('./routes/budgetRoutes'); // ADD THIS LINE
+const budgetRoutes = require('./routes/budgetRoutes'); // ADD THIS
 
 // This line loads the variables from your .env file
 dotenv.config();
@@ -26,7 +26,7 @@ app.use(express.json()); // To parse JSON bodies
 // API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/budgets', budgetRoutes); // ADD THIS LINE
+app.use('/api/budgets', budgetRoutes); // ADD THIS
 
 
 const PORT = process.env.PORT || 5000;

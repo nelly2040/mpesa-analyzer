@@ -3,18 +3,25 @@ import API from './api';
 const BUDGET_API_URL = '/budgets';
 
 const budgetService = {
-    // Set or update a budget
     setBudget: async (budgetData) => {
         try {
+            console.log('Sending budget data:', budgetData);
+            
+            // Check if we have a token
+            const user = JSON.parse(localStorage.getItem('user'));
+            console.log('User token exists:', !!user?.token);
+            
             const response = await API.post(BUDGET_API_URL, budgetData);
+            console.log('Budget set successfully:', response.data);
             return response.data;
         } catch (error) {
             console.error('Error setting budget:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
             throw error;
         }
     },
 
-    // Get all budgets
     getBudgets: async (filters = {}) => {
         try {
             const params = new URLSearchParams();
@@ -30,7 +37,6 @@ const budgetService = {
         }
     },
 
-    // Get budget summary with spending
     getBudgetSummary: async (filters = {}) => {
         try {
             const params = new URLSearchParams();
@@ -46,7 +52,6 @@ const budgetService = {
         }
     },
 
-    // Delete a budget
     deleteBudget: async (id) => {
         try {
             const response = await API.delete(`${BUDGET_API_URL}/${id}`);
