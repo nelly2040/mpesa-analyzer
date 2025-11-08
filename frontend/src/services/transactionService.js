@@ -70,7 +70,7 @@ const transactionService = {
         }
     },
 
-    // ADD THESE REPORT FUNCTIONS - MAKE SURE THE SYNTAX IS CORRECT
+    // Report functions
     getMonthlyReport: async (filters = {}) => {
         try {
             const params = new URLSearchParams();
@@ -96,6 +96,19 @@ const transactionService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching yearly report:', error);
+            throw error;
+        }
+    },
+
+    // Auto-categorize function
+    autoCategorize: async (transactionIds = []) => {
+        try {
+            const response = await API.post(`${TRANSACTION_API_URL}/auto-categorize`, {
+                transactionIds
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error auto-categorizing transactions:', error);
             throw error;
         }
     }

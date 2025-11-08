@@ -185,55 +185,271 @@ const deleteTransaction = async (req, res) => {
     }
 };
 
+// @desc    Parse M-Pesa SMS and create transactions with smart categorization
+// @route   POST /api/transactions/parse-sms
 const parseSmsAndCreateTransactions = async (req, res) => {
-    const { text } = req.body;
-    const user = req.user._id;
+    try {
+        const { text } = req.body;
+        const user = req.user._id;
 
-    // Regular Expression to find M-Pesa "Sent" or "Paid to" transactions
-    // Example: QABC... Confirmed. Ksh1,500.00 sent to JOHN DOE 07... on 28/10/25 at 7:30 PM.
-    // Example: QABC... Confirmed. You have paid Ksh550.00 to KPLC PREPAID... on 28/10/25 at 8:00 PM.
-    const mpesaRegex = /[A-Z0-9]{10}\sConfirmed\.\s(?:Ksh|KSh)([\d,]+\.\d{2})\s(?:sent to|paid to|you have paid)\s(.+?)\son\s(\d{1,2}\/\d{1,2}\/\d{2,4})\sat\s(\d{1,2}:\d{2}\s[AP]M)/g;
-    
-    const lines = text.split('\n');
-    const transactionsToCreate = [];
-    
-    for (const line of lines) {
-        // We use .exec in a loop to handle multiple matches in a single line if needed
-        let match;
-        while ((match = mpesaRegex.exec(line)) !== null) {
-            const amount = parseFloat(match[1].replace(/,/g, ''));
-            const description = match[2].trim();
+        // Enhanced M-Pesa patterns with smart categorization
+        const mpesaPatterns = [
+            // Sent money patterns
+            {
+                regex: /([A-Z0-9]{10})\sConfirmed\.\s(?:Ksh|KSh)([\d,]+\.\d{2})\ssent to\s(.+?)\s(\d+)\son\s(\d{1,2}\/\d{1,2}\/\d{2,4})\sat\s(\d{1,2}:\d{2}\s[AP]M)/,
+                type: 'expense',
+                getCategory: (description) => categorizeTransaction(description, 'sent')
+            },
+            // Paid to businesses patterns
+            {
+                regex: /([A-Z0-9]{10})\sConfirmed\.\s(?:Ksh|KSh)([\d,]+\.\d{2})\spaid to\s(.+?)\son\s(\d{1,2}\/\d{1,2}\/\d{2,4})\sat\s(\d{1,2}:\d{2}\s[AP]M)/,
+                type: 'expense', 
+                getCategory: (description) => categorizeTransaction(description, 'paid')
+            },
+            // You have paid patterns
+            {
+                regex: /([A-Z0-9]{10})\sConfirmed\.\sYou have paid\s(?:Ksh|KSh)([\d,]+\.\d{2})\sto\s(.+?)\son\s(\d{1,2}\/\d{1,2}\/\d{2,4})\sat\s(\d{1,2}:\d{2}\s[AP]M)/,
+                type: 'expense',
+                getCategory: (description) => categorizeTransaction(description, 'paid')
+            },
+            // Received money patterns
+            {
+                regex: /([A-Z0-9]{10})\sConfirmed\.\s(?:Ksh|KSh)([\d,]+\.\d{2})\sreceived from\s(.+?)\s(\d+)\son\s(\d{1,2}\/\d{1,2}\/\d{2,4})\sat\s(\d{1,2}:\d{2}\s[AP]M)/,
+                type: 'income',
+                getCategory: () => 'Gift' // Most received money is gifts/personal
+            },
+            // Business payment received
+            {
+                regex: /([A-Z0-9]{10})\sConfirmed\.\s(?:Ksh|KSh)([\d,]+\.\d{2})\sreceived from\s(.+?)\son\s(\d{1,2}\/\d{1,2}\/\d{2,4})\sat\s(\d{1,2}:\d{2}\s[AP]M)/,
+                type: 'income',
+                getCategory: (description) => categorizeTransaction(description, 'business')
+            }
+        ];
+
+        // Smart categorization function
+        const categorizeTransaction = (description, transactionType) => {
+            const desc = description.toLowerCase();
             
-            // Basic date parsing (Note: This assumes the current century)
-            const dateParts = match[3].split('/');
-            const timeParts = match[4].match(/(\d+):(\d+)\s(AM|PM)/);
-            let hours = parseInt(timeParts[1]);
-            if (timeParts[3] === 'PM' && hours !== 12) hours += 12;
-            if (timeParts[3] === 'AM' && hours === 12) hours = 0;
+            // Food & Dining
+            if (desc.includes('naivas') || desc.includes('nakumatt') || desc.includes('tuskys') || 
+                desc.includes('chandarana') || desc.includes('food') || desc.includes('restaurant') ||
+                desc.includes('kfc') || desc.includes('java') || desc.includes('mcdonalds')) {
+                return 'Food';
+            }
             
-            const year = parseInt(dateParts[2].length === 2 ? `20${dateParts[2]}` : dateParts[2]);
-            const month = parseInt(dateParts[1]) - 1; // JS months are 0-indexed
-            const day = parseInt(dateParts[0]);
-            const minutes = parseInt(timeParts[2]);
+            // Transport
+            if (desc.includes('uber') || desc.includes('bolt') || desc.includes('taxi') || 
+                desc.includes('matatu') || desc.includes('bus') || desc.includes('fuel') ||
+                desc.includes('shell') || desc.includes('total') || desc.includes('mobil')) {
+                return 'Transport';
+            }
+            
+            // Utilities
+            if (desc.includes('kplc') || desc.includes('electricity') || desc.includes('nairobi water') ||
+                desc.includes('water') || desc.includes('airtel') || desc.includes('safaricom') ||
+                desc.includes('telkom') || desc.includes('internet') || desc.includes('wi-fi')) {
+                return 'Utilities';
+            }
+            
+            // Entertainment
+            if (desc.includes('netflix') || desc.includes('showmax') || desc.includes('movie') ||
+                desc.includes('cinema') || desc.includes('spotify') || desc.includes('youtube') ||
+                desc.includes('game') || desc.includes('entertainment')) {
+                return 'Entertainment';
+            }
+            
+            // Shopping
+            if (desc.includes('jumia') || desc.includes('konga') || desc.includes('shop') ||
+                desc.includes('market') || desc.includes('mall') || desc.includes('clothes') ||
+                desc.includes('fashion')) {
+                return 'Shopping';
+            }
+            
+            // Salary & Business (for income)
+            if (transactionType === 'business' || desc.includes('salary') || desc.includes('payroll') ||
+                desc.includes('payment') || desc.includes('invoice')) {
+                return 'Salary';
+            }
+            
+            // Default categories based on transaction type
+            if (transactionType === 'sent') return 'Other';
+            if (transactionType === 'paid') return 'Utilities';
+            if (transactionType === 'business') return 'Sales';
+            
+            return 'Other';
+        };
 
-            const date = new Date(year, month, day, hours, minutes);
+        const lines = text.split('\n');
+        const transactionsToCreate = [];
+        const skippedTransactions = [];
+        
+        for (const line of lines) {
+            let transactionCreated = false;
+            
+            for (const pattern of mpesaPatterns) {
+                const match = line.match(pattern.regex);
+                if (match) {
+                    const amount = parseFloat(match[2].replace(/,/g, ''));
+                    const description = match[3].trim();
+                    
+                    // Parse date and time
+                    const dateParts = match[4]?.split('/') || match[5]?.split('/');
+                    const timeParts = (match[6] || match[5])?.match(/(\d+):(\d+)\s(AM|PM)/);
+                    
+                    if (!dateParts || !timeParts) {
+                        skippedTransactions.push({ line, reason: 'Invalid date format' });
+                        continue;
+                    }
+                    
+                    let hours = parseInt(timeParts[1]);
+                    if (timeParts[3] === 'PM' && hours !== 12) hours += 12;
+                    if (timeParts[3] === 'AM' && hours === 12) hours = 0;
+                    
+                    const year = parseInt(dateParts[2].length === 2 ? `20${dateParts[2]}` : dateParts[2]);
+                    const month = parseInt(dateParts[1]) - 1;
+                    const day = parseInt(dateParts[0]);
+                    const minutes = parseInt(timeParts[2]);
 
-            transactionsToCreate.push({
-                user,
-                type: 'expense', // We assume sent/paid is an expense
-                category: 'Other', // User can recategorize later
-                amount,
-                date,
-                description,
+                    const date = new Date(year, month, day, hours, minutes);
+                    
+                    // Get smart category
+                    const category = pattern.getCategory(description);
+
+                    transactionsToCreate.push({
+                        user,
+                        type: pattern.type,
+                        category,
+                        amount,
+                        date,
+                        description: `${description} (Auto-categorized)`,
+                        mpesaCode: match[1]
+                    });
+                    
+                    transactionCreated = true;
+                    break;
+                }
+            }
+            
+            if (!transactionCreated && line.trim() && line.includes('MPesa') || line.includes('Ksh')) {
+                skippedTransactions.push({ line, reason: 'Pattern not recognized' });
+            }
+        }
+
+        if (transactionsToCreate.length > 0) {
+            const createdTransactions = await Transaction.insertMany(transactionsToCreate);
+            
+            res.status(201).json({ 
+                message: `${createdTransactions.length} transactions created successfully.`,
+                transactions: createdTransactions,
+                skipped: skippedTransactions,
+                summary: {
+                    income: createdTransactions.filter(t => t.type === 'income').length,
+                    expenses: createdTransactions.filter(t => t.type === 'expense').length,
+                    categories: [...new Set(createdTransactions.map(t => t.category))]
+                }
+            });
+        } else {
+            res.status(200).json({ 
+                message: 'No valid M-Pesa transactions found to import.',
+                skipped: skippedTransactions
             });
         }
+    } catch (error) {
+        console.error('Parse SMS error:', error);
+        res.status(500).json({ message: 'Server Error' });
     }
+};
 
-    if (transactionsToCreate.length > 0) {
-        const createdTransactions = await Transaction.insertMany(transactionsToCreate);
-        res.status(201).json({ message: `${createdTransactions.length} transactions created successfully.`, transactions: createdTransactions });
-    } else {
-        res.status(200).json({ message: 'No valid M-Pesa transactions found to import.' });
+// @desc    Auto-categorize existing transactions
+// @route   POST /api/transactions/auto-categorize
+const autoCategorizeTransactions = async (req, res) => {
+    try {
+        const { transactionIds } = req.body;
+        
+        let filter = { user: req.user._id };
+        if (transactionIds && transactionIds.length > 0) {
+            filter._id = { $in: transactionIds };
+        }
+
+        const transactions = await Transaction.find(filter);
+        let updatedCount = 0;
+        const updateResults = [];
+
+        // Smart categorization function (same as above)
+        const categorizeTransaction = (description, currentType) => {
+            const desc = description.toLowerCase();
+            
+            // Food & Dining
+            if (desc.includes('naivas') || desc.includes('nakumatt') || desc.includes('tuskys') || 
+                desc.includes('chandarana') || desc.includes('food') || desc.includes('restaurant') ||
+                desc.includes('kfc') || desc.includes('java') || desc.includes('mcdonalds')) {
+                return 'Food';
+            }
+            
+            // Transport
+            if (desc.includes('uber') || desc.includes('bolt') || desc.includes('taxi') || 
+                desc.includes('matatu') || desc.includes('bus') || desc.includes('fuel') ||
+                desc.includes('shell') || desc.includes('total') || desc.includes('mobil')) {
+                return 'Transport';
+            }
+            
+            // Utilities
+            if (desc.includes('kplc') || desc.includes('electricity') || desc.includes('nairobi water') ||
+                desc.includes('water') || desc.includes('airtel') || desc.includes('safaricom') ||
+                desc.includes('telkom') || desc.includes('internet') || desc.includes('wi-fi')) {
+                return 'Utilities';
+            }
+            
+            // Entertainment
+            if (desc.includes('netflix') || desc.includes('showmax') || desc.includes('movie') ||
+                desc.includes('cinema') || desc.includes('spotify') || desc.includes('youtube') ||
+                desc.includes('game') || desc.includes('entertainment')) {
+                return 'Entertainment';
+            }
+            
+            // Shopping
+            if (desc.includes('jumia') || desc.includes('konga') || desc.includes('shop') ||
+                desc.includes('market') || desc.includes('mall') || desc.includes('clothes') ||
+                desc.includes('fashion')) {
+                return 'Shopping';
+            }
+            
+            // Salary & Business
+            if (desc.includes('salary') || desc.includes('payroll') || desc.includes('payment') ||
+                desc.includes('invoice') || desc.includes('business')) {
+                return currentType === 'income' ? 'Salary' : 'Other';
+            }
+            
+            return 'Other';
+        };
+
+        for (const transaction of transactions) {
+            const newCategory = categorizeTransaction(transaction.description, transaction.type);
+            
+            if (newCategory !== transaction.category) {
+                const oldCategory = transaction.category;
+                transaction.category = newCategory;
+                await transaction.save();
+                updatedCount++;
+                
+                updateResults.push({
+                    id: transaction._id,
+                    description: transaction.description,
+                    oldCategory,
+                    newCategory
+                });
+            }
+        }
+
+        res.json({
+            message: `Auto-categorized ${updatedCount} out of ${transactions.length} transactions.`,
+            updatedCount,
+            totalTransactions: transactions.length,
+            updates: updateResults
+        });
+    } catch (error) {
+        console.error('Auto-categorize error:', error);
+        res.status(500).json({ message: 'Server Error' });
     }
 };
 

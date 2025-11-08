@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-
 const { protect } = require('../middleware/authMiddleware');
 
 const {
@@ -10,8 +9,9 @@ const {
     updateTransaction,
     deleteTransaction,
     parseSmsAndCreateTransactions,
-    getMonthlyReport,  
-    getYearlyReport    
+    getMonthlyReport,
+    getYearlyReport,
+    autoCategorizeTransactions  // ADD THIS
 } = require('../controllers/transactionController');
 
 router.route('/')
@@ -20,8 +20,8 @@ router.route('/')
 
 router.get('/summary', protect, getTransactionSummary);
 router.post('/parse-sms', protect, parseSmsAndCreateTransactions);
+router.post('/auto-categorize', protect, autoCategorizeTransactions); // ADD THIS
 
-// ADD THESE NEW ROUTES
 router.get('/reports/monthly', protect, getMonthlyReport);
 router.get('/reports/yearly', protect, getYearlyReport);
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import TransactionModal from '../components/TransactionModal';
 import SmsImportModal from '../components/SmsImportModal';
+import AutoCategorizeModal from '../components/AutoCategorizeModal';
 import TransactionList from '../components/TransactionList';
 import DashboardSummary from '../components/DashboardSummary';
 import ExpenseChart from '../components/ExpenseChart';
@@ -12,6 +13,7 @@ import transactionService from '../services/transactionService';
 const DashboardPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+    const [isAutoCategorizeModalOpen, setIsAutoCategorizeModalOpen] = useState(false);
     const [transactions, setTransactions] = useState([]);
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -104,6 +106,19 @@ const DashboardPage = () => {
         }
     };
 
+    const handleAutoCategorize = async (transactionIds = []) => {
+        try {
+            setError('');
+            const result = await transactionService.autoCategorize(transactionIds);
+            alert(`Successfully categorized ${result.updatedCount} transactions!`);
+            setIsAutoCategorizeModalOpen(false);
+            fetchData(activeFilters);
+        } catch (error) {
+            console.error('Failed to auto-categorize:', error);
+            setError('Failed to auto-categorize transactions. Please try again.');
+        }
+    };
+
     const handleOpenAddModal = () => {
         setTransactionToEdit(null);
         setIsModalOpen(true);
@@ -138,6 +153,14 @@ const DashboardPage = () => {
                 isOpen={isSmsModalOpen}
                 onClose={handleCloseSmsModal}
                 onImport={handleSmsImport}
+            />
+
+            {/* Auto-Categorize Modal */}
+            <AutoCategorizeModal
+                isOpen={isAutoCategorizeModalOpen}
+                onClose={() => setIsAutoCategorizeModalOpen(false)}
+                onCategorize={handleAutoCategorize}
+                transactions={transactions}
             />
 
             <header className="bg-white shadow">
@@ -180,7 +203,18 @@ const DashboardPage = () => {
                         </div>
                     </div>
                     
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
+                        {/* Auto-Categorize Button */}
+                        <button
+                            onClick={() => setIsAutoCategorizeModalOpen(true)}
+                            className="bg-teal-600 text-white font-bold py-2 px-4 rounded hover:bg-teal-700 transition-colors flex items-center gap-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Auto-Categorize
+                        </button>
+
                         {/* Import SMS Button */}
                         <button
                             onClick={() => setIsSmsModalOpen(true)}
@@ -272,7 +306,13 @@ const DashboardPage = () => {
                                     <p className="text-gray-600 mb-6">
                                         Get started by adding your first transaction or importing M-Pesa SMS data.
                                     </p>
-                                    <div className="flex gap-4 justify-center">
+                                    <div className="flex gap-4 justify-center flex-wrap">
+                                        <button
+                                            onClick={() => setIsAutoCategorizeModalOpen(true)}
+                                            className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 transition-colors"
+                                        >
+                                            Auto-Categorize
+                                        </button>
                                         <button
                                             onClick={() => setIsSmsModalOpen(true)}
                                             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
