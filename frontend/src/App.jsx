@@ -5,7 +5,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
-import ReportsPage from './pages/ReportsPage'; // ADD THIS IMPORT
+import ReportsPage from './pages/ReportsPage';
+import BudgetPage from './pages/BudgetPage'; // ADD THIS IMPORT
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -25,9 +26,14 @@ function App() {
                             <SettingsPage />
                         </ProtectedRoute>
                     } />
-                    <Route path="/reports" element={ // ADD THIS ROUTE
+                    <Route path="/reports" element={
                         <ProtectedRoute>
                             <ReportsPage />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/budget" element={ // ADD THIS ROUTE
+                        <ProtectedRoute>
+                            <BudgetPage />
                         </ProtectedRoute>
                     } />
                     <Route path="*" element={<Navigate to="/" />} />
