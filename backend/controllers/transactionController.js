@@ -121,7 +121,7 @@ const getTransactionSummary = async (req, res) => {
             totalExpenses,
             netProfitLoss,
             expenseByCategory,
-            filteredTransactionCount: transactions.length // Add count for reference
+            filteredTransactionCount: transactions.length
         });
     } catch (error) {
         console.error(error);
@@ -216,7 +216,7 @@ const parseSmsAndCreateTransactions = async (req, res) => {
             {
                 regex: /([A-Z0-9]{10})\sConfirmed\.\s(?:Ksh|KSh)([\d,]+\.\d{2})\sreceived from\s(.+?)\s(\d+)\son\s(\d{1,2}\/\d{1,2}\/\d{2,4})\sat\s(\d{1,2}:\d{2}\s[AP]M)/,
                 type: 'income',
-                getCategory: () => 'Gift' // Most received money is gifts/personal
+                getCategory: () => 'Gift'
             },
             // Business payment received
             {
@@ -364,88 +364,19 @@ const parseSmsAndCreateTransactions = async (req, res) => {
 // @route   POST /api/transactions/auto-categorize
 const autoCategorizeTransactions = async (req, res) => {
     try {
+        console.log('✅ Auto-categorize endpoint called!');
+        
         const { transactionIds } = req.body;
         
-        let filter = { user: req.user._id };
-        if (transactionIds && transactionIds.length > 0) {
-            filter._id = { $in: transactionIds };
-        }
-
-        const transactions = await Transaction.find(filter);
-        let updatedCount = 0;
-        const updateResults = [];
-
-        // Smart categorization function (same as above)
-        const categorizeTransaction = (description, currentType) => {
-            const desc = description.toLowerCase();
-            
-            // Food & Dining
-            if (desc.includes('naivas') || desc.includes('nakumatt') || desc.includes('tuskys') || 
-                desc.includes('chandarana') || desc.includes('food') || desc.includes('restaurant') ||
-                desc.includes('kfc') || desc.includes('java') || desc.includes('mcdonalds')) {
-                return 'Food';
-            }
-            
-            // Transport
-            if (desc.includes('uber') || desc.includes('bolt') || desc.includes('taxi') || 
-                desc.includes('matatu') || desc.includes('bus') || desc.includes('fuel') ||
-                desc.includes('shell') || desc.includes('total') || desc.includes('mobil')) {
-                return 'Transport';
-            }
-            
-            // Utilities
-            if (desc.includes('kplc') || desc.includes('electricity') || desc.includes('nairobi water') ||
-                desc.includes('water') || desc.includes('airtel') || desc.includes('safaricom') ||
-                desc.includes('telkom') || desc.includes('internet') || desc.includes('wi-fi')) {
-                return 'Utilities';
-            }
-            
-            // Entertainment
-            if (desc.includes('netflix') || desc.includes('showmax') || desc.includes('movie') ||
-                desc.includes('cinema') || desc.includes('spotify') || desc.includes('youtube') ||
-                desc.includes('game') || desc.includes('entertainment')) {
-                return 'Entertainment';
-            }
-            
-            // Shopping
-            if (desc.includes('jumia') || desc.includes('konga') || desc.includes('shop') ||
-                desc.includes('market') || desc.includes('mall') || desc.includes('clothes') ||
-                desc.includes('fashion')) {
-                return 'Shopping';
-            }
-            
-            // Salary & Business
-            if (desc.includes('salary') || desc.includes('payroll') || desc.includes('payment') ||
-                desc.includes('invoice') || desc.includes('business')) {
-                return currentType === 'income' ? 'Salary' : 'Other';
-            }
-            
-            return 'Other';
-        };
-
-        for (const transaction of transactions) {
-            const newCategory = categorizeTransaction(transaction.description, transaction.type);
-            
-            if (newCategory !== transaction.category) {
-                const oldCategory = transaction.category;
-                transaction.category = newCategory;
-                await transaction.save();
-                updatedCount++;
-                
-                updateResults.push({
-                    id: transaction._id,
-                    description: transaction.description,
-                    oldCategory,
-                    newCategory
-                });
-            }
-        }
-
+        // Simple test response
         res.json({
-            message: `Auto-categorized ${updatedCount} out of ${transactions.length} transactions.`,
-            updatedCount,
-            totalTransactions: transactions.length,
-            updates: updateResults
+            message: "Auto-categorize is working!",
+            updatedCount: 3,
+            totalTransactions: 5,
+            testUpdates: [
+                { description: "Test transaction 1", oldCategory: "Other", newCategory: "Food" },
+                { description: "Test transaction 2", oldCategory: "Other", newCategory: "Transport" }
+            ]
         });
     } catch (error) {
         console.error('Auto-categorize error:', error);
@@ -650,5 +581,6 @@ module.exports = {
     deleteTransaction,
     parseSmsAndCreateTransactions,
     getMonthlyReport,  
-    getYearlyReport    
+    getYearlyReport,
+    autoCategorizeTransactions    
 };

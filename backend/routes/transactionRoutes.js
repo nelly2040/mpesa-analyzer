@@ -11,7 +11,7 @@ const {
     parseSmsAndCreateTransactions,
     getMonthlyReport,
     getYearlyReport,
-    autoCategorizeTransactions  // ADD THIS
+    autoCategorizeTransactions
 } = require('../controllers/transactionController');
 
 router.route('/')
@@ -20,7 +20,7 @@ router.route('/')
 
 router.get('/summary', protect, getTransactionSummary);
 router.post('/parse-sms', protect, parseSmsAndCreateTransactions);
-router.post('/auto-categorize', protect, autoCategorizeTransactions); // ADD THIS
+router.post('/auto-categorize', protect, autoCategorizeTransactions);
 
 router.get('/reports/monthly', protect, getMonthlyReport);
 router.get('/reports/yearly', protect, getYearlyReport);
