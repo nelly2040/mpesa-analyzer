@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 
@@ -29,4 +29,4 @@ router.route('/:id')
     .put(protect, updateTransaction)
     .delete(protect, deleteTransaction);
 
-module.exports = router;
+export default router;

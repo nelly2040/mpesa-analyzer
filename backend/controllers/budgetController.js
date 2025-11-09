@@ -1,8 +1,6 @@
-const Budget = require('../models/budgetModel');
+import Budget from '../models/budgetModel.js';
 
-// @desc    Create or update a budget
-// @route   POST /api/budgets
-const setBudget = async (req, res) => {
+export const setBudget = async (req, res) => {
     try {
         const { category, amount, month, year } = req.body;
 
@@ -51,8 +49,8 @@ const setBudget = async (req, res) => {
 
 // @desc    Get all budgets for a user
 // @route   GET /api/budgets
-const getBudgets = async (req, res) => {
-    try {
+export const getBudgets = async (req, res) => {
+        try {
         const { month, year } = req.query;
         
         let filter = { user: req.user._id };
@@ -75,7 +73,7 @@ const getBudgets = async (req, res) => {
 
 // @desc    Get budget summary with spending vs budget
 // @route   GET /api/budgets/summary
-const getBudgetSummary = async (req, res) => {
+export const getBudgetSummary = async (req, res) => {
     try {
         const { month, year } = req.query;
         const Transaction = require('../models/transactionModel');
@@ -160,7 +158,7 @@ const getBudgetSummary = async (req, res) => {
 
 // @desc    Delete a budget
 // @route   DELETE /api/budgets/:id
-const deleteBudget = async (req, res) => {
+export const deleteBudget = async (req, res) => {
     try {
         const budget = await Budget.findById(req.params.id);
 

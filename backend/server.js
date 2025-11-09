@@ -1,12 +1,12 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const mongoose = require('mongoose');
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import mongoose from 'mongoose';
 
 // Route imports
-const userRoutes = require('./routes/userRoutes.js');
-const transactionRoutes = require('./routes/transactionRoutes.js');
-const budgetRoutes = require('./routes/budgetRoutes.js');
+import userRoutes from './routes/userRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
+import budgetRoutes from './routes/budgetRoutes.js';
 
 dotenv.config();
 
