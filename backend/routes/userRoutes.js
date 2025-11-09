@@ -1,4 +1,4 @@
-import express from 'express';
+const express = require('express');
 const router = express.Router();
 // Import the new functions
 const { 
@@ -22,4 +22,4 @@ router.route('/profile')
 router.put('/password', protect, changeUserPassword);
 
 
-export default router;
+module.exports = router;

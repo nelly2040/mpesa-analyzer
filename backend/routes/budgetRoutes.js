@@ -1,12 +1,12 @@
-import express from 'express';
+const express = require('express');
 const router = express.Router();
-import { protect } from '../middleware/authMiddleware.js';
-import {
+const { protect } = require('../middleware/authMiddleware');
+const {
     setBudget,
     getBudgets,
     getBudgetSummary,
     deleteBudget
-} from '../controllers/budgetController.js';
+} = require('../controllers/budgetController');
 
 router.route('/')
     .post(protect, setBudget)
@@ -15,4 +15,4 @@ router.route('/')
 router.get('/summary', protect, getBudgetSummary);
 router.delete('/:id', protect, deleteBudget);
 
-export default router;
+module.exports = router;
