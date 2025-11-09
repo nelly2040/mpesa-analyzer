@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import BudgetModal from '../components/BudgetModal';
 import BudgetSummary from '../components/BudgetSummary';
@@ -21,7 +21,8 @@ const BudgetPage = () => {
         setSelectedMonth(currentMonth);
     }, []);
 
-    const fetchBudgetSummary = async (month = selectedMonth) => {
+    // Use useCallback to memoize the function
+    const fetchBudgetSummary = useCallback(async (month = selectedMonth) => {
         try {
             setError('');
             setLoading(true);
@@ -34,13 +35,13 @@ const BudgetPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedMonth]); // Add dependencies here
 
     useEffect(() => {
         if (selectedMonth) {
             fetchBudgetSummary(selectedMonth);
         }
-    }, [selectedMonth]);
+    }, [selectedMonth, fetchBudgetSummary]); // Now includes fetchBudgetSummary
 
     const handleSaveBudget = async (budgetData) => {
         try {
