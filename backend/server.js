@@ -14,7 +14,10 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: [
+    'https://mpesa-analyzerfront.netlify.app', // Your Netlify frontend
+    'http://localhost:5173'
+  ],
   credentials: true
 }));
 
